@@ -105,6 +105,7 @@ const Sidebar = () => {
       label: 'Bodega',
       icon: <Box size={18} />,
       children: [
+        { label: 'Maestro de SKU', href: '/inventory' },
         { label: 'Solicitud de Bodega', href: '/bodega/solicitud' },
         { label: 'Documento de despacho', href: '/bodega/despacho' },
         { label: 'Documento de recepción', href: '/bodega/recepcion' },
