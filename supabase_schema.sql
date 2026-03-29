@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT,
     category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
     uom_id UUID REFERENCES public.uoms(id) ON DELETE SET NULL,
+    stock_actual INTEGER DEFAULT 0,
     min_stock INTEGER DEFAULT 0,
     is_serialized BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),

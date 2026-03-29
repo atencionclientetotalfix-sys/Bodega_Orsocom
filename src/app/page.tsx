@@ -8,8 +8,10 @@ import {
   AlertTriangle,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Bell
 } from 'lucide-react';
+import { useAlerts } from '@/hooks/useAlerts';
 
 const StatCard = ({ title, value, icon, trend, trendValue, color }: any) => (
   <div className="card stat-card">
@@ -80,6 +82,8 @@ const StatCard = ({ title, value, icon, trend, trendValue, color }: any) => (
 );
 
 export default function Dashboard() {
+  const { expirations, stockAlerts, loading } = useAlerts();
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -89,20 +93,20 @@ export default function Dashboard() {
 
       <div className="stats-grid">
         <StatCard 
-          title="Stock Crítico" 
-          value="12" 
+          title="Stock Crítico (Semaforización)" 
+          value={loading ? '-' : stockAlerts.length.toString()} 
           icon={<AlertTriangle size={20} />} 
-          trend="up" 
-          trendValue="+2" 
-          color="red"
+          trend={stockAlerts.length > 0 ? "up" : "down"} 
+          trendValue={stockAlerts.length > 0 ? "ATENCIÓN" : "NORMAL"} 
+          color={stockAlerts.length > 0 ? "red" : "green"}
         />
         <StatCard 
-          title="Solicitudes Pendientes" 
-          value="45" 
-          icon={<ClipboardList size={20} />} 
-          trend="down" 
-          trendValue="-5%" 
-          color="orange"
+          title="Equipos por Vencer" 
+          value={loading ? '-' : expirations.length.toString()} 
+          icon={<Bell size={20} />} 
+          trend={expirations.length > 0 ? "up" : "down"} 
+          trendValue={expirations.length > 0 ? "REQUIERE ACCIÓN" : "OK"} 
+          color={expirations.length > 0 ? "orange" : "blue"}
         />
         <StatCard 
           title="Materiales en Tránsito" 
@@ -123,11 +127,42 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-grid">
-        <div className="card main-chart-card">
-          <h3>Flujo de Materiales por Proyecto</h3>
-          <div className="chart-placeholder">
-            <BarChart3 size={48} />
-            <p>Visualización de movimientos en tiempo real</p>
+        <div className="card alerts-card">
+          <h3>Alertas Activas (Semaforización)</h3>
+          
+          <div className="alerts-list">
+            {loading ? (
+              <p className="text-muted loading-alerts">Cargando alertas...</p>
+            ) : (
+              <>
+                {expirations.length === 0 && stockAlerts.length === 0 && (
+                  <div className="empty-alerts">
+                    <Box size={32} className="empty-alerts-icon" />
+                    <p>No hay alertas críticas en este momento.</p>
+                  </div>
+                )}
+                
+                {expirations.map((exp, i) => (
+                  <div key={`exp-${i}`} className="alert-item alert-orange">
+                    <div className="alert-icon"><Bell size={18} /></div>
+                    <div className="alert-content">
+                      <h4>Certificación por vencer: {exp.product_name}</h4>
+                      <p>SN: {exp.serial_number} - Vence en {exp.days_remaining} días ({new Date(exp.expiry_date).toLocaleDateString()})</p>
+                    </div>
+                  </div>
+                ))}
+
+                {stockAlerts.map((stk, i) => (
+                  <div key={`stk-${i}`} className="alert-item alert-red">
+                    <div className="alert-icon"><AlertTriangle size={18} /></div>
+                    <div className="alert-content">
+                      <h4>Stock Bajo: {stk.product_name} {stk.size_label ? `(${stk.size_label})` : ''}</h4>
+                      <p>Stock actual: {stk.current_stock} / Mínimo: {stk.min_stock}</p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
         
@@ -186,14 +221,60 @@ export default function Dashboard() {
           grid-template-columns: 2fr 1fr;
           gap: 1.5rem;
         }
-        .chart-placeholder {
-          height: 300px;
+        .alerts-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          min-height: 200px;
+        }
+        .loading-alerts {
+          padding: 1rem;
+          text-align: center;
+        }
+        .empty-alerts {
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: #30363d;
+          height: 100%;
+          color: #7d8590;
+          font-size: 0.9rem;
+          padding: 2rem;
+        }
+        .empty-alerts-icon {
+          opacity: 0.2;
+          margin-bottom: 0.5rem;
+        }
+        .alert-item {
+          display: flex;
           gap: 1rem;
+          padding: 1rem;
+          border-radius: 8px;
+          align-items: flex-start;
+          backdrop-filter: blur(8px);
+        }
+        .alert-orange {
+          background: rgba(210, 153, 34, 0.05);
+          border: 1px solid rgba(210, 153, 34, 0.2);
+        }
+        .alert-orange .alert-icon { color: #d29922; }
+        
+        .alert-red {
+          background: rgba(218, 54, 51, 0.05);
+          border: 1px solid rgba(218, 54, 51, 0.2);
+        }
+        .alert-red .alert-icon { color: #f85149; }
+
+        .alert-content h4 {
+          font-size: 0.9rem;
+          margin: 0 0 0.25rem 0;
+          color: #e6edf3;
+        }
+        .alert-content p {
+          font-size: 0.8rem;
+          margin: 0;
+          color: #7d8590;
         }
         .activity-list {
           list-style: none;
