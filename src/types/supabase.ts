@@ -68,7 +68,7 @@ export interface Project {
   cost_center?: CostCenter;
 }
 
-export type RoleType = 'SUPER_ADMIN' | 'SUPERVISOR' | 'USER';
+export type RoleType = 'SUPER_ADMIN' | 'BODEGUERO' | 'SUPERVISOR' | 'USER';
 
 export interface UserProfile {
   id: string;

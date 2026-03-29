@@ -24,13 +24,13 @@ CREATE TABLE IF NOT EXISTS public.projects (
 
 -- 2. SISTEMA DE USUARIOS Y ROLES (Vinculado a Supabase Auth)
 
--- user_roles: 'SUPER_ADMIN', 'SUPERVISOR', 'USER'
+-- user_roles: 'SUPER_ADMIN', 'BODEGUERO', 'SUPERVISOR', 'USER'
 CREATE TABLE IF NOT EXISTS public.user_profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    role VARCHAR(50) DEFAULT 'USER' CHECK (role IN ('SUPER_ADMIN', 'SUPERVISOR', 'USER')),
+    role VARCHAR(50) DEFAULT 'USER' CHECK (role IN ('SUPER_ADMIN', 'BODEGUERO', 'SUPERVISOR', 'USER')),
     -- Relación opcional para definir a qué Centro de Costo puede acceder un Supervisor
     assigned_cost_center_id UUID REFERENCES public.cost_centers(id) ON DELETE SET NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
