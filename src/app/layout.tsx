@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import Sidebar from "@/components/Sidebar";
+import { AppLayout } from "@/components/AppLayout";
 
 export const metadata: Metadata = {
   title: "Orsocom Cloud | WMS Eléctrico",
@@ -15,12 +15,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <div className="layout-container">
-          <Sidebar />
-          <main className="main-content">
-            {children}
-          </main>
-        </div>
+        <AppLayout>{children}</AppLayout>
       </body>
     </html>
   );

@@ -25,7 +25,8 @@ export function useProducts() {
       .select(`
         *,
         category:categories(*),
-        uom:uoms(*)
+        uom:uoms(*),
+        product_variants(*)
       `)
       .order('created_at', { ascending: false });
 
@@ -69,6 +70,7 @@ export function useProducts() {
           category_id: product.category_id,
           uom_id: product.uom_id,
           min_stock: product.min_stock,
+          stock_actual: product.stock_actual || 0,
           is_serialized: product.is_serialized
         }])
         .select()
