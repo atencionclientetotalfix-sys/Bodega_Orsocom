@@ -19,6 +19,7 @@ export interface Product {
   description: string;
   category_id: string;
   uom_id: string;
+  stock_actual: number;
   min_stock: number;
   is_serialized: boolean;
   category?: Category;
@@ -47,4 +48,62 @@ export interface Supervisor {
   email: string;
   notify_expirations: boolean;
   notify_stock: boolean;
+}
+
+export interface CostCenter {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+}
+
+export interface Project {
+  id: string;
+  cost_center_id: string;
+  code: string;
+  name: string;
+  status: 'Activo' | 'Inactivo' | 'Cerrado';
+  created_at?: string;
+  cost_center?: CostCenter;
+}
+
+export type RoleType = 'SUPER_ADMIN' | 'SUPERVISOR' | 'USER';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: RoleType;
+  assigned_cost_center_id?: string;
+  assigned_cost_center?: CostCenter;
+}
+
+export interface OrderRequest {
+  id: string;
+  folio: number;
+  requester_id: string;
+  project_id: string;
+  status: 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'REJECTED';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  
+  requester?: UserProfile;
+  project?: Project;
+}
+
+export interface OrderRequestItem {
+  id: string;
+  request_id: string;
+  product_id: string;
+  variant_id?: string;
+  requested_qty: number;
+  approved_qty: number;
+  status: 'PENDING' | 'APPROVED' | 'PARTIAL' | 'REJECTED';
+  notes?: string;
+  
+  product?: Product;
+  variant?: ProductVariant;
 }
