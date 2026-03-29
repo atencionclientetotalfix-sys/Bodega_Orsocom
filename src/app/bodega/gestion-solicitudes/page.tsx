@@ -1,24 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { ClipboardList, AlertCircle, Search, Clock, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ClipboardList, Clock, CheckCircle2, ChevronDown, ChevronUp, ScanLine } from 'lucide-react';
 import { processOrderApproval } from './actions';
+import { toast } from 'sonner';
 
 export default function GestionSolicitudes() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   
-  // States purely for the forms inside
   const [approvals, setApprovals] = useState<Record<string, number>>({});
   const [rejections, setRejections] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Scanner & Search State
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
   const supabase = createClient();
-
-  useEffect(() => {
-    fetchRequests();
-  }, []);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -34,25 +36,19 @@ export default function GestionSolicitudes() {
           variant:product_variants(size_label, stock_actual)
         )
       `)
-      .in('status', ['PENDING', 'PARTIAL']) // Only actionable items
+      .in('status', ['PENDING', 'PARTIAL'])
       .order('created_at', { ascending: false });
 
-    if (data) setRequests(data);
+    if (data) {
+      setRequests(data);
+      setFilteredRequests(data);
+    }
     setLoading(false);
   };
 
-  const handleApproveQtyChange = (itemId: string, maxQty: number, val: number) => {
-    const qty = Math.max(0, Math.min(maxQty, val));
-    setApprovals(prev => ({ ...prev, [itemId]: qty }));
-  };
-
-  const handleRejectNoteChange = (itemId: string, note: string) => {
-    setRejections(prev => ({ ...prev, [itemId]: note }));
-  };
-
-  const submitApproval = async (request: any) => {
-    const itemsData = request.items.map((item: any) => {
-      const approvedQty = approvals[item.id] !== undefined ? approvals[item.id] : item.requested_qty; // Default to full approval if untouched
+  const submitApproval = async (request: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const itemsData = request.items.map((item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const approvedQty = approvals[item.id] !== undefined ? approvals[item.id] : item.requested_qty;
       const rejectNote = rejections[item.id] || '';
       
       let finalStatus: 'APPROVED' | 'PARTIAL' | 'REJECTED' = 'APPROVED';
@@ -78,19 +74,97 @@ export default function GestionSolicitudes() {
     setIsSubmitting(false);
 
     if (result.error) {
-      alert(result.error);
+      toast.error(result.error);
     } else {
+      toast.success(`Despacho para #${request.folio || request.id.slice(0,5)} confirmado.`);
       setExpandedRow(null);
-      fetchRequests(); // reload
+      setSearchTerm('');
+      fetchRequests();
+      if (searchInputRef.current) searchInputRef.current.focus();
     }
   };
 
-  const toggleRow = (id: string, items: any[]) => {
+  useEffect(() => {
+    fetchRequests();
+    
+    // Auto-focus on search input when component mounts
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Si estamos dentro de un input que sea de cantidad o texto de rechazo, no capturamos para no entorpecer
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'; // eslint-disable-line @typescript-eslint/no-unused-vars
+
+      if (e.key === 'Escape' && expandedRow) {
+        setExpandedRow(null);
+        if (searchInputRef.current) searchInputRef.current.focus();
+      }
+
+      // Si apretan Enter y hay una fila abierta (y NO estan buscando), confirmamos despacho
+      if (e.key === 'Enter' && expandedRow && target.id !== 'scanner-search') {
+        const activeReq = requests.find(r => r.id === expandedRow);
+        if (activeReq && !isSubmitting) submitApproval(activeReq);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expandedRow, requests, isSubmitting, approvals, rejections]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
+  const handleApproveQtyChange = (itemId: string, requested: number, val: number) => {
+    const validVal = Math.max(0, Math.min(val, requested));
+    setApprovals(prev => ({ ...prev, [itemId]: validVal }));
+  };
+
+  const handleRejectNoteChange = (itemId: string, val: string) => {
+    setRejections(prev => ({ ...prev, [itemId]: val }));
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value.toUpperCase();
+    setSearchTerm(term);
+    
+    if (!term) {
+      setFilteredRequests(requests);
+      return;
+    }
+
+    const filtered = requests.filter(req => {
+      const matchFolio = req.folio?.toUpperCase().includes(term) || req.id.toUpperCase().includes(term);
+      const matchSku = req.items.some((item: any) => item.product.sku?.toUpperCase().includes(term)); // eslint-disable-line @typescript-eslint/no-explicit-any
+      
+      return matchFolio || matchSku;
+    });
+
+    setFilteredRequests(filtered);
+
+    // Auto-expand if only 1 matches and we hit enter or scan completes.
+    // Done through handleKeyDownSearch
+  };
+
+  const handleKeyDownSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // Un escaneo de código de barras normalmente termina con "Enter".
+      if (filteredRequests.length === 1 && expandedRow !== filteredRequests[0].id) {
+        toggleRow(filteredRequests[0].id, filteredRequests[0].items);
+        // Borrar input para el siguiente escaneo
+        setSearchTerm('');
+        setFilteredRequests(requests);
+      }
+    }
+  };
+
+
+  const toggleRow = (id: string, items: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (expandedRow !== id) {
-      // Pre-fill default approval qtys
       const initialApr: Record<string, number> = {};
       items.forEach(i => {
-         // Default to max possible logically, capped by physical stock.
          const physStock = i.variant ? i.variant.stock_actual : i.product.stock_actual;
          initialApr[i.id] = Math.min(i.requested_qty, physStock);
       });
@@ -101,106 +175,148 @@ export default function GestionSolicitudes() {
     }
   };
 
-  if (loading) return <div className="text-center text-slate-500 py-12">Cargando Solicitudes...</div>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-[50vh]">
+      <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-          <ClipboardList size={28} className="text-amber-500" />
-          Gestión de Despachos 
-        </h1>
-        <p className="text-slate-400 mt-1">Revisa y autoriza de forma administrativa y rebaja stock de la bodega.</p>
+    <div className="max-w-[1600px] mx-auto space-y-8 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+            <ClipboardList className="text-amber-500" size={32} />
+            Gestión Logística de Despachos
+          </h1>
+          <p className="text-slate-400">Aprueba o rechaza solicitudes de pedidos para rebajar inventario.</p>
+        </div>
+
+        {/* Global Scanner / Search Bar */}
+        <div className="relative w-full md:w-96 group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <ScanLine size={18} className="text-slate-500 group-focus-within:text-amber-500 transition-colors" />
+          </div>
+          <input
+            id="scanner-search"
+            ref={searchInputRef}
+            type="text"
+            className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder-slate-500 shadow-lg backdrop-blur-md"
+            placeholder="Pistola Scanner (SKU) o Buscar Folio..."
+            value={searchTerm}
+            onChange={handleSearch}
+            onKeyDown={handleKeyDownSearch}
+            autoComplete="off"
+          />
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+             <div className="px-2 py-0.5 rounded border border-slate-700 bg-slate-800 text-[10px] text-slate-400 shadow-sm">
+               AUTO-FOCUS
+             </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-         {requests.length === 0 ? (
-           <div className="text-center text-slate-500 py-20 flex flex-col items-center gap-3">
-             <CheckCircle2 size={48} className="text-emerald-500/50" />
-             <p>No hay solicitudes pendientes en este momento.</p>
+      <div className="premium-glass-card p-0 overflow-hidden relative min-h-[400px]">
+         {filteredRequests.length === 0 ? (
+           <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+             <CheckCircle2 size={56} className="text-emerald-500/20 mb-4" />
+             <p className="text-lg font-medium text-slate-400">Bodega al día.</p>
+             <p className="text-sm">No hay solicitudes pendientes con el criterio de búsqueda.</p>
            </div>
          ) : (
-           <div className="divide-y divide-slate-800">
-             {requests.map((req) => (
-               <div key={req.id} className="group">
+           <div className="divide-y divide-slate-800/50">
+             {filteredRequests.map((req) => (
+               <div key={req.id} className="group flex flex-col transition-all">
                   {/* Header Row */}
                   <div 
                     onClick={() => toggleRow(req.id, req.items)}
-                    className="flex items-center justify-between p-5 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 cursor-pointer transition-colors ${expandedRow === req.id ? 'bg-slate-800/40' : 'hover:bg-slate-800/20'}`}
                   >
-                     <div className="flex items-center gap-6">
-                       <span className="bg-slate-800 text-amber-500 px-3 py-1 rounded text-sm font-bold border border-slate-700">
-                         #FOLIO-{req.folio}
+                     <div className="flex items-center gap-6 w-full sm:w-auto">
+                       <span className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${req.status === 'PARTIAL' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} shadow-sm`}>
+                         #FOLIO-{req.folio || req.id.slice(0,5).toUpperCase()}
                        </span>
                        <div>
-                         <p className="text-white font-medium">{req.project?.name} <span className="text-xs text-slate-500">({req.project?.code})</span></p>
-                         <p className="text-xs text-slate-400 mt-0.5">
-                           Solicitante: {req.requester?.first_name} {req.requester?.last_name} ({req.requester?.email})
+                         <p className="text-white font-medium text-lg tracking-tight">
+                           {req.project?.name} <span className="text-xs text-slate-500 font-normal">({req.project?.code})</span>
+                         </p>
+                         <p className="text-sm text-slate-400 mt-0.5">
+                           Pide: <span className="text-slate-300">{req.requester?.first_name} {req.requester?.last_name}</span>
                          </p>
                        </div>
                      </div>
-                     <div className="flex items-center gap-6">
-                       <div className="flex items-center gap-2 text-slate-400 text-sm">
-                         <Clock size={14} />
+                     <div className="flex items-center gap-6 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
+                       <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
+                         <Clock size={16} />
                          {new Date(req.created_at).toLocaleDateString('es-CL', { hour: '2-digit', minute:'2-digit' })}
                        </div>
-                       <div className="w-8 h-8 rounded bg-slate-800 text-slate-400 flex items-center justify-center border border-slate-700">
-                         {expandedRow === req.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${expandedRow === req.id ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                         {expandedRow === req.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                        </div>
                      </div>
                   </div>
 
-                  {/* Expanded Items section */}
-                  {expandedRow === req.id && (
-                    <div className="p-6 bg-slate-950/50 border-t border-slate-800/50">
-                       <h3 className="text-sm font-semibold text-white mb-4">Líneas de la Solicitud</h3>
+                  {/* Expanded Document Grid */}
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedRow === req.id ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-6 bg-slate-900/30 border-t border-slate-800/50 shadow-inner">
                        
-                       <div className="space-y-3">
-                         {req.items.map((item: any) => {
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-widest col-span-full">Detalle a Despachar</h3>
+                       </div>
+                       
+                       <div className="space-y-4">
+                         {req.items.map((item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                            const physStock = item.variant ? item.variant.stock_actual : item.product.stock_actual;
                            const isStockWarning = physStock < item.requested_qty;
 
                            return (
-                             <div key={item.id} className={`p-4 rounded-lg border ${isStockWarning ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800 bg-slate-900'} grid grid-cols-12 gap-4 items-center`}>
-                               <div className="col-span-5">
-                                 <p className="text-sm font-medium text-white">{item.product.name} <span className="text-xs text-slate-500 ml-2">{item.product.sku}</span></p>
-                                 <div className="flex items-center mt-1 gap-2">
+                             <div key={item.id} className={`p-5 rounded-xl border grid grid-cols-1 lg:grid-cols-12 gap-6 items-center shadow-sm ${isStockWarning ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800 bg-slate-900/50'}`}>
+                               <div className="lg:col-span-5 flex flex-col">
+                                 <p className="text-base font-semibold text-white">
+                                   {item.product.name}
+                                 </p>
+                                 <div className="flex items-center mt-2 gap-2 flex-wrap">
+                                  <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+                                    {item.product.sku}
+                                  </span>
                                   {item.variant && (
-                                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 rounded border border-indigo-500/20">
+                                    <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-medium tracking-wide">
                                       Talla: {item.variant.size_label}
                                     </span>
                                   )}
-                                  <span className={`text-[10px] px-1.5 rounded border ${isStockWarning ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                                    Stock Físico: {physStock} {item.product.uom?.abbreviation}
+                                  <span className={`text-xs px-2 py-0.5 rounded border font-medium tracking-wide ${isStockWarning ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                    Físico: {physStock} {item.product.uom?.abbreviation}
                                   </span>
                                  </div>
                                </div>
 
-                               <div className="col-span-3 text-center">
-                                 <p className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider font-bold">Solicitado</p>
-                                 <p className="font-semibold text-white text-lg">{item.requested_qty}</p>
+                               <div className="lg:col-span-2 text-center py-2 lg:py-0 border-y lg:border-y-0 lg:border-x border-slate-800/50">
+                                 <p className="text-[10px] text-slate-500 mb-1 uppercase tracking-widest font-bold">Solicitado</p>
+                                 <p className="font-bold text-white text-2xl">{item.requested_qty} <span className="text-xs text-slate-500 font-normal">{item.product.uom?.abbreviation}</span></p>
                                </div>
 
-                               <div className="col-span-4 flex items-center gap-3">
-                                 <div className="flex-1">
-                                  <label className="block text-[10px] text-slate-500 mb-1 uppercase tracking-wider font-bold">Aprobar</label>
+                               <div className="lg:col-span-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                 <div className="w-full sm:w-1/3">
+                                  <label className="block text-[10px] text-slate-500 mb-1.5 uppercase tracking-widest font-bold">Aprobar Qty</label>
                                   <input 
                                     type="number" 
-                                    className="w-full bg-slate-800 border border-slate-700 text-white rounded px-2 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                    className={`w-full bg-slate-950 border text-white rounded-lg px-3 py-2 text-base font-semibold focus:outline-none focus:ring-2 shadow-inner transition-colors ${
+                                      approvals[item.id] < item.requested_qty ? 'border-amber-500/50 focus:ring-amber-500 focus:border-transparent text-amber-500' : 'border-slate-700 focus:ring-emerald-500 focus:border-transparent'
+                                    }`}
                                     min="0"
                                     max={Math.min(item.requested_qty, physStock)}
                                     title="Cantidad a despachar física"
                                     value={approvals[item.id] !== undefined ? approvals[item.id] : ''}
                                     onChange={e => handleApproveQtyChange(item.id, item.requested_qty, parseInt(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                   />
                                  </div>
-                                 <div className="flex-1">
-                                  <label className="block text-[10px] text-slate-500 mb-1 uppercase tracking-wider font-bold">Nota Rechazo</label>
+                                 <div className="w-full sm:w-2/3">
+                                  <label className="block text-[10px] text-slate-500 mb-1.5 uppercase tracking-widest font-bold">Motivo (Si es parcial)</label>
                                   <input 
                                     type="text" 
-                                    placeholder="Motivo..."
-                                    className="w-full bg-slate-800 border border-slate-700 text-slate-300 rounded px-2 py-1.5 text-sm focus:border-amber-500 disabled:opacity-30"
-                                    title="Justificar rebaja"
+                                    placeholder="Justificar menor cantidad..."
+                                    className="w-full bg-slate-950 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-30 disabled:cursor-not-allowed shadow-inner"
                                     disabled={approvals[item.id] === item.requested_qty}
                                     value={rejections[item.id] || ''}
                                     onChange={e => handleRejectNoteChange(item.id, e.target.value)}
@@ -212,23 +328,32 @@ export default function GestionSolicitudes() {
                          })}
                        </div>
 
-                       <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-800/50">
-                          <button 
-                            onClick={() => setExpandedRow(null)}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
-                          >
-                            Cancelar
-                          </button>
-                          <button 
-                            onClick={() => submitApproval(req)}
-                            disabled={isSubmitting}
-                            className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
-                          >
-                            {isSubmitting ? 'Procesando...' : 'Confirmar Despacho'}
-                          </button>
+                       <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 border-t border-slate-800/50">
+                          <p className="text-xs text-slate-500 flex items-center gap-2 hidden sm:flex">
+                             <span className="px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-400">Esc</span> para cerrar
+                             <span className="px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-400 ml-2">Enter</span> para confirmar
+                          </p>
+                          <div className="flex gap-4 w-full sm:w-auto">
+                            <button 
+                              onClick={() => {
+                                setExpandedRow(null);
+                                if (searchInputRef.current) searchInputRef.current.focus();
+                              }}
+                              className="flex-1 sm:flex-none px-6 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors font-medium border border-transparent hover:border-slate-700"
+                            >
+                              Cancelar
+                            </button>
+                            <button 
+                              onClick={() => submitApproval(req)}
+                              disabled={isSubmitting}
+                              className="premium-btn flex-1 sm:flex-none px-8 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-sm transition-colors disabled:opacity-50 shadow-lg shadow-amber-500/20"
+                            >
+                              {isSubmitting ? 'Registrando...' : 'Confirmar Despacho'}
+                            </button>
+                          </div>
                        </div>
                     </div>
-                  )}
+                  </div>
                </div>
              ))}
            </div>

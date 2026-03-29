@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import { AppLayout } from "@/components/AppLayout";
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: "Orsocom Cloud | WMS Eléctrico",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
+        <Toaster richColors position="top-right" theme="dark" />
         <AppLayout>{children}</AppLayout>
       </body>
     </html>

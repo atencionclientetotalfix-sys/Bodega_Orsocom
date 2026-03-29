@@ -41,26 +41,6 @@ export default function Dashboard() {
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  useEffect(() => {
-    if (!profile) return;
-    
-    fetchDashboardData();
-
-    // Suscripciones Realtime
-    const channelEvents = supabase.channel('dashboard_metrics')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_requests' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stock_movements' }, () => {
-        fetchDashboardData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channelEvents);
-    };
-  }, [profile]);
-
   const fetchDashboardData = async () => {
     setLoadingStats(true);
     try {
@@ -97,6 +77,26 @@ export default function Dashboard() {
     setLoadingStats(false);
   };
 
+  useEffect(() => {
+    if (!profile) return;
+    
+    fetchDashboardData();
+
+    // Suscripciones Realtime
+    const channelEvents = supabase.channel('dashboard_metrics')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_requests' }, () => {
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stock_movements' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channelEvents);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
   const isAdmin = role === 'SUPER_ADMIN' || role === 'BODEGUERO';
 
   return (
