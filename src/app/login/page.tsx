@@ -15,8 +15,17 @@ export default function LoginPage({
           </svg>
         </div>
 
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+        <div className="flex flex-col items-center">
+          <img 
+            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/logo.png`} 
+            alt="Orsocom Logo" 
+            className="h-16 w-auto object-contain mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            onError={(e) => {
+              // Fallback visual si la imagen aún no se sube a Supabase
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <h2 className="text-center text-3xl font-extrabold text-white">
             Orsocom Cloud
           </h2>
           <p className="mt-2 text-center text-sm text-slate-400">

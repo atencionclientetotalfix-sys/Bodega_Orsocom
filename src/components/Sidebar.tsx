@@ -168,9 +168,19 @@ const Sidebar = () => {
   return (
     <aside className="w-[280px] premium-sidebar h-screen flex flex-col text-[#9198a1] flex-shrink-0 z-50">
       <div className="p-6 border-b border-white/5 bg-slate-900/40">
-        <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          Orsocom <span className="text-amber-500">Cloud</span>
-        </h1>
+        <div className="flex items-center gap-3">
+          <img 
+            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/logo.png`} 
+            alt="Orsocom Logo" 
+            className="h-8 w-auto object-contain drop-shadow-md"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            Orsocom <span className="text-amber-500">Cloud</span>
+          </h1>
+        </div>
         <div className="text-[10px] text-slate-500 mt-1 uppercase font-semibold tracking-wider flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
           Rol: {role}
