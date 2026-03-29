@@ -11,9 +11,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
-      <div className={isAuthPage ? '' : 'layout-container'}>
+      <div className={isAuthPage ? '' : 'flex h-screen w-screen overflow-hidden'}>
         {!isAuthPage && <Sidebar />}
-        <main className={isAuthPage ? 'w-full min-h-screen' : 'main-content'}>
+        <main className={isAuthPage ? 'w-full min-h-screen' : 'flex-grow overflow-y-auto bg-transparent relative custom-scrollbar'}>
           {children}
         </main>
       </div>

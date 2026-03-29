@@ -42,20 +42,20 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ label, icon, href, children }
   };
 
   const content = (
-    <div className={`sidebar-item-container ${expanded ? 'expanded' : ''}`} onClick={toggle}>
-      <div className="sidebar-link">
-        <div className="sidebar-icon-label">
-          {icon && <span className="icon">{icon}</span>}
-          <span className="label">{label}</span>
+    <div className={`mb-0.5 ${expanded ? 'expanded' : ''}`} onClick={toggle}>
+      <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 hover:bg-slate-800/80 hover:text-white ${expanded ? 'text-white bg-slate-800/40' : 'text-slate-400'}`}>
+        <div className="flex items-center gap-3">
+          {icon && <span className="flex items-center text-amber-500">{icon}</span>}
+          <span className="text-sm font-medium">{label}</span>
         </div>
         {hasChildren && (
-          <span className="chevron">
+          <span className="text-slate-500">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
         )}
       </div>
       {hasChildren && expanded && (
-        <div className="sidebar-children">
+        <div className="pl-4 mt-1 border-l border-white/5 ml-4 animate-fade-in-up space-y-0.5">
           {children.map((child, idx) => (
             <SidebarItem key={idx} {...child} />
           ))}
@@ -166,16 +166,19 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <h1>Orsocom <span>Cloud</span></h1>
-        <div className="text-xs text-slate-500 mt-1 uppercase font-semibold">
+    <aside className="w-[280px] premium-sidebar h-screen flex flex-col text-[#9198a1] flex-shrink-0 z-50">
+      <div className="p-6 border-b border-white/5 bg-slate-900/40">
+        <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+          Orsocom <span className="text-amber-500">Cloud</span>
+        </h1>
+        <div className="text-[10px] text-slate-500 mt-1 uppercase font-semibold tracking-wider flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
           Rol: {role}
         </div>
       </div>
       
-      <div className="sidebar-scrollable flex-grow custom-scrollbar">
-        <div className="nav-section space-y-1">
+      <div className="overflow-y-auto flex-grow custom-scrollbar py-4">
+        <div className="px-4 space-y-1">
           {navigation.map((item, idx) => (
             <SidebarItem key={idx} {...item} />
           ))}
@@ -183,9 +186,9 @@ const Sidebar = () => {
 
         {role === 'SUPER_ADMIN' && (
           <>
-            <div className="sidebar-divider" />
-            <div className="nav-section config-section">
-              <span className="section-title">ADMINISTRACIÓN</span>
+            <div className="h-px bg-white/5 my-4 mx-4" />
+            <div className="px-4">
+              <span className="text-[10px] font-bold text-slate-500 px-3 pb-2 block uppercase tracking-wider">ADMINISTRACIÓN</span>
               <SidebarItem 
                 label="Sistema" 
                 icon={<Settings size={18} />} 
@@ -196,124 +199,15 @@ const Sidebar = () => {
         )}
       </div>
 
-      <div className="sidebar-footer p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-white/5 bg-slate-900/40">
         <button 
           onClick={signOut}
-          className="flex w-full items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
+          className="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all duration-200"
         >
           <LogOut size={18} />
-          <span>Cerrar Sesión</span>
+          <span className="font-medium">Cerrar Sesión</span>
         </button>
       </div>
-
-      <style jsx>{`
-        .sidebar {
-          width: 280px;
-          background-color: var(--sidebar-bg);
-          height: 100vh;
-          border-right: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          color: #9198a1;
-        }
-
-        .sidebar-logo {
-          padding: 1.5rem;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .sidebar-logo h1 {
-          color: white;
-          font-size: 1.25rem;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-        }
-
-        .sidebar-logo h1 span {
-          color: var(--accent);
-        }
-
-        .sidebar-scrollable {
-          overflow-y: auto;
-          padding: 1rem 0;
-        }
-
-        .nav-section {
-          padding: 0 1rem;
-        }
-
-        .sidebar-divider {
-          height: 1px;
-          background-color: var(--border);
-          margin: 1rem 0;
-        }
-
-        .section-title {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #7d8590;
-          padding: 0 0.75rem 0.5rem;
-          display: block;
-        }
-
-        :global(.sidebar-item-container) {
-          margin-bottom: 2px;
-        }
-
-        :global(.sidebar-link) {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0.6rem 0.75rem;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        :global(.sidebar-link:hover) {
-          background-color: var(--sidebar-hover);
-          color: white;
-        }
-
-        :global(.sidebar-icon-label) {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        :global(.label) {
-          font-size: 0.875rem;
-          font-weight: 500;
-        }
-
-        :global(.sidebar-children) {
-          padding-left: 1.25rem;
-          margin-top: 2px;
-          border-left: 1px solid var(--border);
-          margin-left: 1.25rem;
-        }
-
-        :global(.icon) {
-          display: flex;
-          align-items: center;
-          color: var(--accent);
-        }
-
-        :global(.expanded .sidebar-link) {
-          color: white;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: var(--border);
-          border-radius: 10px;
-        }
-      `}</style>
     </aside>
   );
 };

@@ -1,105 +1,122 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #0d1117;
-  --foreground: #e6edf3;
-  --sidebar-bg: #161b22;
-  --sidebar-hover: #21262d;
-  --accent: #1f6feb;
-  --accent-hover: #388bfd;
-  --border: #30363d;
-  --card-bg: #161b22;
-  --input-bg: #0d1117;
-  --success: #238636;
-  --warning: #d29922;
-  --danger: #da3633;
+@layer base {
+  :root {
+    --background: #090e17; /* Slate muy oscuro */
+    --foreground: #f8fafc; /* Slate 50 */
+    --sidebar-bg: rgba(15, 23, 42, 0.65); /* Slate 900 semi */
+    --sidebar-hover: rgba(30, 41, 59, 0.8); /* Slate 800 */
+    --accent: #f59e0b; /* Amber 500 */
+    --accent-hover: #fbbf24; /* Amber 400 */
+    --border: rgba(51, 65, 85, 0.5); /* Slate 700 semi */
+    --card-bg: rgba(15, 23, 42, 0.5); /* Base de dashboard */
+    --card-border: rgba(30, 41, 59, 0.6);
+    --input-bg: rgba(2, 6, 23, 0.6); /* Slate 950 */
+    
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    /* Gradientes */
+    --glow-amber: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    background-image: 
+      radial-gradient(ellipse at top right, rgba(30, 41, 59, 1) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(15, 23, 42, 1) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@layer components {
+  /* Panel lateral Glassmorphism */
+  .premium-sidebar {
+    background: var(--sidebar-bg);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-right: 1px solid var(--border);
+  }
+
+  /* Tarjetas Glassmorphism Premium */
+  .premium-glass-card {
+    background: var(--card-bg);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .premium-glass-card:hover {
+    border-color: rgba(245, 158, 11, 0.3); /* Amber destello al hover */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(245, 158, 11, 0.05);
+    transform: translateY(-2px);
+  }
+
+  /* Botones Vivos */
+  .premium-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease-out;
+  }
+  
+  .premium-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease-out, height 0.4s ease-out;
+  }
+
+  .premium-btn:active::after {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+
+  /* Scrollbars refinados */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.5); /* Slate 400 */
+  }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', sans-serif;
-  height: 100vh;
-  overflow: hidden;
+/* Animaciones suaves generales */
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.animate-fade-in-up {
+  animation: fadeInSlideUp 0.4s ease-out forwards;
 }
 
-.layout-container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-}
-
-.main-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 2rem;
-  background-color: var(--background);
-}
-
-/* Sidebar Custom Scrollbar */
-.sidebar::-webkit-scrollbar {
-  width: 5px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: var(--sidebar-bg);
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 10px;
-}
-
-/* Generic Card */
-.card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Button Premium */
-.btn {
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-primary {
-  background-color: var(--accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: var(--accent-hover);
-}
-
-.btn-outline {
-  background-color: transparent;
-  border-color: var(--border);
-  color: var(--foreground);
-}
-
-.btn-outline:hover {
-  background-color: var(--sidebar-hover);
-  border-color: var(--foreground);
-}
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
