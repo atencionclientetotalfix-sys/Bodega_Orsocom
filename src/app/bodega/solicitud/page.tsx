@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useOrganizations } from '@/hooks/useOrganizations';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, Search, Plus, Trash2, PackageSearch, AlertCircle, Building2, Briefcase, Minus } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Trash2, PackageSearch, AlertCircle, Building2, Briefcase, Minus, HardHat, Zap, Scissors, Droplet, Box } from 'lucide-react';
+import { toast } from 'sonner';
 import { Product, ProductVariant } from '@/types/supabase';
 import { submitOrderRequest } from './actions';
 
@@ -53,6 +54,7 @@ export default function SolicitudBodega() {
     const selectedVariant = (product as any).product_variants?.find((v: ProductVariant) => v.id === selectedVariants[product.id]) || null;
     
     addToCart(product, 1, selectedVariant);
+    toast.success(`Agregado: ${product.name}`, { description: selectedVariant ? `Talla: ${selectedVariant.size_label}` : undefined });
     
     // reset selection for this product
     setSelectedVariants(prev => {
@@ -161,10 +163,20 @@ export default function SolicitudBodega() {
                 const isEPP = product.category?.type === 'EPP';
                 const variants: ProductVariant[] = (product as any).product_variants || [];
 
+                let CatIcon = Box;
+                if (product.category?.type === 'EPP') CatIcon = HardHat;
+                else if (product.category?.name?.toLowerCase().includes('eléctric') || product.category?.name?.toLowerCase().includes('electric')) CatIcon = Zap;
+                else if (product.category?.name?.toLowerCase().includes('herramienta')) CatIcon = Scissors;
+                else if (product.category?.name?.toLowerCase().includes('limpieza') || product.category?.name?.toLowerCase().includes('liquido')) CatIcon = Droplet;
+
                 return (
-                  <div key={product.id} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors flex items-center justify-between group">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
+                  <div key={product.id} className="bg-slate-800/30 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/80 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.1)] transition-all flex flex-col sm:flex-row gap-4 sm:items-center justify-between group">
+                    <div className="flex gap-4 items-center">
+                      <div className="w-12 h-12 rounded-lg bg-slate-900/80 flex items-center justify-center border border-slate-700/50 text-slate-400 group-hover:text-amber-500 group-hover:border-amber-500/30 transition-colors shrink-0">
+                        <CatIcon size={24} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-mono text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
                           {product.sku}
                         </span>
@@ -174,6 +186,7 @@ export default function SolicitudBodega() {
                       </div>
                       <h3 className="text-sm font-semibold text-white">{product.name}</h3>
                       <p className="text-xs text-slate-500 mt-1">Stock Base: {product.stock_actual} {product.uom?.abbreviation}</p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -212,7 +225,7 @@ export default function SolicitudBodega() {
         </div>
 
         {/* Formulario y Carrito Right Pane */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className="lg:col-span-5 flex flex-col gap-6 sticky top-6 h-[calc(100vh-100px)]">
           
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
