@@ -250,7 +250,7 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="py-3 text-slate-400">
-                           {new Date(req.created_at).toLocaleDateString()}
+                           {new Date(req.created_at).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })}
                         </td>
                         {!isAdmin && (
                           <td className="py-3 text-right">

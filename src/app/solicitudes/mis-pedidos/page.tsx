@@ -107,7 +107,7 @@ export default function MisPedidosPage() {
                     <div>
                       <h3 className="text-white font-medium">{order.projects?.name || 'Sin Proyecto'} <span className="text-slate-500 text-sm font-normal">({order.projects?.code})</span></h3>
                       <p className="text-slate-400 text-xs mt-1">
-                        Solicitado el {new Date(order.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        Solicitado el {new Date(order.created_at).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

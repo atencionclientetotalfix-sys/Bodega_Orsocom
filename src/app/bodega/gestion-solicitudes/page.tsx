@@ -248,7 +248,7 @@ export default function GestionSolicitudes() {
                      <div className="flex items-center gap-6 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
                        <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
                          <Clock size={16} />
-                         {new Date(req.created_at).toLocaleDateString('es-CL', { hour: '2-digit', minute:'2-digit' })}
+                         {new Date(req.created_at).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute:'2-digit' })}
                        </div>
                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${expandedRow === req.id ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                          {expandedRow === req.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

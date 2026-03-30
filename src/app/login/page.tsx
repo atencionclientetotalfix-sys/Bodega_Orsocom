@@ -10,13 +10,6 @@ export default function LoginPage({
   return (
     <div className="flex bg-[#0f1115] min-h-screen text-slate-100 flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8 bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-          <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
-        </div>
-
         <div className="flex flex-col items-center">
           <img 
             src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/logo.png`} 
@@ -31,7 +24,7 @@ export default function LoginPage({
             Orsocom Cloud
           </h2>
           <p className="mt-2 text-center text-sm text-slate-400">
-            Warehouse Management System
+            Sistema de Gestión de Bodega
           </p>
         </div>
 
@@ -86,7 +79,7 @@ export default function LoginPage({
             </button>
           </div>
           <p className="text-xs text-center text-slate-500 mt-4">
-            Autenticación segura fase 2 activada.
+             Acceso seguro requerido.
           </p>
         </form>
       </div>
