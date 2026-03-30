@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { ClipboardList, Clock, CheckCircle2, ChevronDown, ChevronUp, ScanLine } from 'lucide-react';
+import { ClipboardList, Clock, CheckCircle2, ChevronDown, ChevronUp, ScanLine, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { processOrderApproval } from './actions';
 import { toast } from 'sonner';
 
@@ -47,6 +47,7 @@ export default function GestionSolicitudes() {
   };
 
   const submitApproval = async (request: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    let hasError = false;
     const itemsData = request.items.map((item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       const approvedQty = approvals[item.id] !== undefined ? approvals[item.id] : item.requested_qty;
       const rejectNote = rejections[item.id] || '';
@@ -54,6 +55,10 @@ export default function GestionSolicitudes() {
       let finalStatus: 'APPROVED' | 'PARTIAL' | 'REJECTED' = 'APPROVED';
       if (approvedQty === 0) finalStatus = 'REJECTED';
       else if (approvedQty < item.requested_qty) finalStatus = 'PARTIAL';
+
+      if ((finalStatus === 'PARTIAL' || finalStatus === 'REJECTED') && !rejectNote.trim()) {
+        hasError = true;
+      }
 
       return {
         id: item.id,
@@ -66,6 +71,11 @@ export default function GestionSolicitudes() {
       };
     });
 
+    if (hasError) {
+      toast.error('Debe ingresar un motivo obligatorio para los ítems con cantidades parciales o rechazadas.');
+      return;
+    }
+
     setIsSubmitting(true);
     const result = await processOrderApproval({
       requestId: request.id,
@@ -76,9 +86,13 @@ export default function GestionSolicitudes() {
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success(`Despacho para #${request.folio || request.id.slice(0,5)} confirmado.`);
+      toast.success(`Despacho para #${request.folio || request.id.slice(0,5)} confirmado exitosamente.`);
       setExpandedRow(null);
       setSearchTerm('');
+      
+      // Auto-Print: Abrimos el generador de la Guía de Despacho en otra pestaña
+      window.open(`/bodega/despacho?id=${request.id}`, '_blank');
+      
       fetchRequests();
       if (searchInputRef.current) searchInputRef.current.focus();
     }
@@ -181,19 +195,44 @@ export default function GestionSolicitudes() {
     </div>
   );
 
+  const pendingCount = requests.filter(r => r.status === 'PENDING').length;
+  const partialCount = requests.filter(r => r.status === 'PARTIAL').length;
+
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 animate-fade-in-up">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="max-w-[1600px] mx-auto space-y-6 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
             <ClipboardList className="text-amber-500" size={32} />
             Gestión Logística de Despachos
           </h1>
-          <p className="text-slate-400">Aprueba o rechaza solicitudes de pedidos para rebajar inventario.</p>
+          <p className="text-slate-400">Aprueba, ajusta o rechaza solicitudes de pedidos para rebajar inventario en tiempo real.</p>
+          
+          <div className="flex items-center gap-4 mt-6">
+             <div className="premium-glass-card py-3 px-5 border-l-4 border-l-blue-500/80 rounded-lg flex items-center gap-4 min-w-[180px]">
+               <div className="bg-blue-500/10 p-2.5 rounded-xl text-blue-400">
+                 <FileText size={20} />
+               </div>
+               <div>
+                 <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Por Despachar</p>
+                 <p className="text-2xl font-bold text-white leading-none mt-1">{pendingCount}</p>
+               </div>
+             </div>
+             
+             <div className="premium-glass-card py-3 px-5 border-l-4 border-l-amber-500/80 rounded-lg flex items-center gap-4 min-w-[180px]">
+               <div className="bg-amber-500/10 p-2.5 rounded-xl text-amber-500">
+                 <AlertCircle size={20} />
+               </div>
+               <div>
+                 <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Parciales</p>
+                 <p className="text-2xl font-bold text-white leading-none mt-1">{partialCount}</p>
+               </div>
+             </div>
+          </div>
         </div>
 
         {/* Global Scanner / Search Bar */}
-        <div className="relative w-full md:w-96 group">
+        <div className="relative w-full md:w-96 group md:pt-2">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <ScanLine size={18} className="text-slate-500 group-focus-within:text-amber-500 transition-colors" />
           </div>
@@ -294,14 +333,13 @@ export default function GestionSolicitudes() {
                                  <p className="text-[10px] text-slate-500 mb-1 uppercase tracking-widest font-bold">Solicitado</p>
                                  <p className="font-bold text-white text-2xl">{item.requested_qty} <span className="text-xs text-slate-500 font-normal">{item.product.uom?.abbreviation}</span></p>
                                </div>
-
                                <div className="lg:col-span-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                  <div className="w-full sm:w-1/3">
                                   <label className="block text-[10px] text-slate-500 mb-1.5 uppercase tracking-widest font-bold">Aprobar Qty</label>
                                   <input 
                                     type="number" 
-                                    className={`w-full bg-slate-950 border text-white rounded-lg px-3 py-2 text-base font-semibold focus:outline-none focus:ring-2 shadow-inner transition-colors ${
-                                      approvals[item.id] < item.requested_qty ? 'border-amber-500/50 focus:ring-amber-500 focus:border-transparent text-amber-500' : 'border-slate-700 focus:ring-emerald-500 focus:border-transparent'
+                                    className={`w-full bg-slate-950/50 border text-white rounded-lg px-3 py-2 text-base font-semibold focus:outline-none focus:ring-2 shadow-inner transition-colors ${
+                                      approvals[item.id] < item.requested_qty ? 'border-amber-500/50 focus:ring-amber-500 focus:border-transparent text-amber-500' : 'border-slate-700/50 focus:ring-emerald-500 focus:border-transparent'
                                     }`}
                                     min="0"
                                     max={Math.min(item.requested_qty, physStock)}
@@ -312,11 +350,18 @@ export default function GestionSolicitudes() {
                                   />
                                  </div>
                                  <div className="w-full sm:w-2/3">
-                                  <label className="block text-[10px] text-slate-500 mb-1.5 uppercase tracking-widest font-bold">Motivo (Si es parcial)</label>
+                                  <label className="block text-[10px] text-slate-500 mb-1.5 uppercase tracking-widest font-bold flex items-center justify-between">
+                                    <span>Motivo</span>
+                                    {approvals[item.id] < item.requested_qty && <span className="text-red-500 normal-case tracking-normal text-xs font-medium">*(Requerido)</span>}
+                                  </label>
                                   <input 
                                     type="text" 
-                                    placeholder="Justificar menor cantidad..."
-                                    className="w-full bg-slate-950 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-30 disabled:cursor-not-allowed shadow-inner"
+                                    placeholder={approvals[item.id] < item.requested_qty ? "Escribe un motivo obligatorio..." : "Justificar si es menor..."}
+                                    className={`w-full bg-slate-950/30 border text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-30 disabled:cursor-not-allowed shadow-inner transition-all ${
+                                      approvals[item.id] < item.requested_qty 
+                                        ? (!rejections[item.id]?.trim() ? 'border-red-500/50 focus:ring-red-500/50 ring-1 ring-red-500/20' : 'border-amber-500/50 focus:ring-amber-500/50')
+                                        : 'border-slate-700/50 focus:ring-slate-700/50'
+                                    }`}
                                     disabled={approvals[item.id] === item.requested_qty}
                                     value={rejections[item.id] || ''}
                                     onChange={e => handleRejectNoteChange(item.id, e.target.value)}
