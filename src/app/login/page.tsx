@@ -9,22 +9,16 @@ export default function LoginPage({
 }) {
   return (
     <div className="flex bg-[#0f1115] min-h-screen text-slate-100 flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-8 bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-sm space-y-8 bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl">
         <div className="flex flex-col items-center">
-          <img 
-            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/assets/logo.png`} 
-            alt="Orsocom Logo" 
-            className="h-16 w-auto object-contain mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-            onError={(e) => {
-              // Fallback visual si la imagen aún no se sube a Supabase
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+          <div className="p-3 bg-amber-500/10 rounded-2xl mb-4 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
           <h2 className="text-center text-3xl font-extrabold text-white">
             Orsocom Cloud
           </h2>
           <p className="mt-2 text-center text-sm text-slate-400">
-            Sistema de Gestión de Bodega
+            Sistema de Gestión Logística
           </p>
         </div>
 
